@@ -9,11 +9,16 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import com.mmk.kmpauth.firebase.google.GoogleButtonUiContainerFirebase
 import com.nutrisport.auth.component.GoogleButton
 import com.nutrisport.shared.Alpha
 import com.nutrisport.shared.BebasNeueFont
@@ -25,7 +30,8 @@ import rememberMessageBarState
 
 @Composable
 fun AuthScreen() {
-    var messageBarState = rememberMessageBarState()
+    val messageBarState = rememberMessageBarState()
+    var loadingState by remember { mutableStateOf(false) }
     Scaffold { paddingValues ->
         ContentWithMessageBar(
             contentBackgroundColor = Surface,
@@ -62,10 +68,34 @@ fun AuthScreen() {
                         color = TextPrimary
                     )
                 }
-                GoogleButton(
-                    loading = false,
-                    onClick = {}
-                )
+                GoogleButtonUiContainerFirebase(
+                    linkAccount = false,
+                    onResult = { result ->
+                        result.onSuccess { user ->
+                            messageBarState.addSuccess("Authentication successful")
+                            loadingState = false
+                        }
+                            .onFailure { error ->
+                                if (error.message?.contains("A network error") == true) {
+                                    messageBarState.addError("Internet connection unavailable")
+                                } else if (error.message?.contains("Idtoken is null") == true) {
+                                    messageBarState.addError("Sign in cancelled")
+                                } else {
+                                    messageBarState.addError(error.message ?: "Unknown")
+                                }
+                                loadingState = false
+                            }
+                    }
+                ) {
+                    GoogleButton(
+                        loading = loadingState,
+                        onClick = {
+                            loadingState = true
+                            this@GoogleButtonUiContainerFirebase.onClick()
+                        }
+                    )
+                }
+
             }
 
         }
