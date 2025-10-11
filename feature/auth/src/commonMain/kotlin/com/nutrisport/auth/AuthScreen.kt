@@ -29,12 +29,15 @@ import com.nutrisport.shared.SurfaceError
 import com.nutrisport.shared.TextPrimary
 import com.nutrisport.shared.TextSecondary
 import com.nutrisport.shared.TextWhite
+import org.koin.compose.viewmodel.koinViewModel
 import rememberMessageBarState
 
 @Composable
 fun AuthScreen() {
+    val viewModel = koinViewModel<AuthViewModel>()
     val messageBarState = rememberMessageBarState()
     var loadingState by remember { mutableStateOf(false) }
+    
     Scaffold { paddingValues ->
         ContentWithMessageBar(
             contentBackgroundColor = Surface,
@@ -79,8 +82,17 @@ fun AuthScreen() {
                     linkAccount = false,
                     onResult = { result ->
                         result.onSuccess { user ->
-                            messageBarState.addSuccess("Authentication successful")
                             loadingState = false
+                            viewModel.createCustomer(
+                                user = user,
+                                onSuccess = {
+                                    messageBarState.addSuccess("Authentication successful")
+                                },
+                                onError = { message ->
+                                    messageBarState.addError(message)
+
+                                }
+                            )
                         }
                             .onFailure { error ->
                                 if (error.message?.contains("A network error") == true) {
